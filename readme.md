@@ -58,7 +58,7 @@ A comprehensive, containerized Kafka management platform with a modern web inter
 
 1. **Clone and navigate to the project:**
 ```bash
-git clone <repository-url>
+git clone https://github.com/AshishBhalotiya/Setup-Local-Kafka.git
 cd Kafka
 ```
 
