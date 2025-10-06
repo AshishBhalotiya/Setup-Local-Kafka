@@ -54,15 +54,16 @@ A comprehensive, containerized Kafka management platform with a modern web inter
 - Docker and Docker Compose installed
 - Node.js 18+ (for local development)
 
-### 🐳 Docker Setup (Recommended)
-
-1. **Clone and navigate to the project:**
+**Clone and navigate to the project:**
 ```bash
 git clone https://github.com/AshishBhalotiya/Setup-Local-Kafka.git
-cd Kafka
+cd Setup-Local-Kafka
+npm install
 ```
 
-2. **Start the complete stack:**
+### 🐳 Docker Setup (Recommended)
+
+1. **Start the complete stack:**
 ```bash
 ./start.sh
 ```
@@ -72,7 +73,7 @@ This will:
 - Wait for all services to be healthy
 - Provide you with the access URL
 
-3. **Access the UI:**
+2. **Access the UI:**
 Open your browser to **http://localhost:3333**
 
 ### 🔧 Manual Docker Commands
