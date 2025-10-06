@@ -1,0 +1,1290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kafka Management UI</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔄</text></svg>">
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-card: #ffffff;
+      --border-color: #e2e8f0;
+      --text-primary: #1a202c;
+      --text-secondary: #4a5568;
+      --text-muted: #718096;
+      --accent: #3182ce;
+      --accent-hover: #2c5282;
+      --success: #38a169;
+      --warning: #d69e2e;
+      --error: #e53e3e;
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #334155;
+      --border-color: #475569;
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --accent: #60a5fa;
+      --accent-hover: #3b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      transition: all 0.3s ease;
+    }
+
+    .header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: between;
+      align-items: center;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-left: auto;
+    }
+
+    .theme-toggle {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      padding: 0.5rem;
+      cursor: pointer;
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+    }
+
+    .theme-toggle:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+    }
+
+    .status-dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 2rem;
+      background: var(--bg-secondary);
+      padding: 0.25rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .tab:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .tab.active {
+      background: var(--bg-card);
+      color: var(--accent);
+      box-shadow: var(--shadow);
+      font-weight: 600;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+      transition: all 0.2s ease;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .grid {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      font-size: 0.875rem;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border-color);
+    }
+
+    .btn-danger {
+      background: var(--error);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-sm {
+      padding: 0.5rem 1rem;
+      font-size: 0.75rem;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .table th,
+    .table td {
+      text-align: left;
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .table th {
+      font-weight: 600;
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+    }
+
+    .table td {
+      color: var(--text-secondary);
+    }
+
+    .table tr:hover {
+      background: var(--bg-secondary);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .badge-success {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+    }
+
+    .badge-warning {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+    }
+
+    .badge-error {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--error);
+    }
+
+    .badge-info {
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--accent);
+    }
+
+    .log-container {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+      font-size: 0.875rem;
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+    }
+
+    .log-entry {
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      border-left: 3px solid transparent;
+    }
+
+    .log-entry.message {
+      border-left-color: var(--success);
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .log-entry.error {
+      border-left-color: var(--error);
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    .log-entry.info {
+      border-left-color: var(--accent);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .metric-label {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 0.5rem;
+      background: var(--bg-secondary);
+      border-radius: 0.25rem;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+
+    .health-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .health-dot {
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: 50%;
+    }
+
+    .health-healthy {
+      background: var(--success);
+    }
+
+    .health-unhealthy {
+      background: var(--error);
+    }
+
+    .loading {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      border-top-color: var(--accent);
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .alert {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .alert-success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+
+    .alert-error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--error);
+      color: var(--error);
+    }
+
+    .toast {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .toast.show {
+      transform: translateX(0);
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        🔄 Kafka Management UI
+      </div>
+      <div class="header-actions">
+        <div class="status-indicator">
+          <div class="status-dot"></div>
+          <span id="connection-status">Connected to <code id="brokers">localhost:9092</code></span>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()">
+          <span id="theme-icon">🌙</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab active" data-tab="overview">📊 Overview</button>
+      <button class="tab" data-tab="topics">📝 Topics</button>
+      <button class="tab" data-tab="producer">📤 Producer</button>
+      <button class="tab" data-tab="consumer">📥 Consumer</button>
+      <button class="tab" data-tab="groups">👥 Consumer Groups</button>
+      <button class="tab" data-tab="health">🏥 Health</button>
+    </div>
+
+    <!-- Overview Tab -->
+    <div id="tab-overview" class="tab-content active">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-value" id="total-topics">0</div>
+          <div class="metric-label">Total Topics</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="total-partitions">0</div>
+          <div class="metric-label">Total Partitions</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="total-messages">0</div>
+          <div class="metric-label">Total Messages</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="active-groups">0</div>
+          <div class="metric-label">Consumer Groups</div>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Recent Topics</h3>
+            <button class="btn btn-secondary btn-sm" onclick="refreshOverview()">
+              <span class="loading hidden" id="overview-loading"></span>
+              🔄 Refresh
+            </button>
+          </div>
+          <div id="recent-topics">Loading...</div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Cluster Health</h3>
+          </div>
+          <div id="cluster-health">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Topics Tab -->
+    <div id="tab-topics" class="tab-content">
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Create Topic</h3>
+          </div>
+          <form id="create-topic-form">
+            <div class="form-group">
+              <label class="form-label" for="topic-name">Topic Name</label>
+              <input class="form-input" id="topic-name" type="text" placeholder="Enter topic name" required>
+            </div>
+            <div class="grid grid-2">
+              <div class="form-group">
+                <label class="form-label" for="partitions">Partitions</label>
+                <input class="form-input" id="partitions" type="number" min="1" value="1">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="replication">Replication Factor</label>
+                <input class="form-input" id="replication" type="number" min="1" value="1">
+              </div>
+            </div>
+            <button class="btn btn-primary" type="submit">
+              <span class="loading hidden" id="create-loading"></span>
+              ➕ Create Topic
+            </button>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Topic Management</h3>
+            <button class="btn btn-secondary btn-sm" onclick="loadTopics()">
+              <span class="loading hidden" id="topics-loading"></span>
+              🔄 Refresh
+            </button>
+          </div>
+          <div id="topics-list">Loading topics...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Producer Tab -->
+    <div id="tab-producer" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Message Producer</h3>
+        </div>
+        <form id="producer-form">
+          <div class="grid grid-2">
+            <div class="form-group">
+              <label class="form-label" for="producer-topic">Topic</label>
+              <select class="form-select" id="producer-topic" required>
+                <option value="">Select a topic</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="message-key">Key (optional)</label>
+              <input class="form-input" id="message-key" type="text" placeholder="Message key">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="message-value">Message</label>
+            <textarea class="form-textarea" id="message-value" placeholder="Enter your message here..." required></textarea>
+          </div>
+          <button class="btn btn-primary" type="submit">
+            <span class="loading hidden" id="producer-loading"></span>
+            📤 Send Message
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Consumer Tab -->
+    <div id="tab-consumer" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Message Consumer</h3>
+          <div>
+            <button class="btn btn-primary btn-sm" id="start-consumer" onclick="startConsumer()">
+              ▶️ Start Consumer
+            </button>
+            <button class="btn btn-danger btn-sm hidden" id="stop-consumer" onclick="stopConsumer()">
+              ⏹️ Stop Consumer
+            </button>
+          </div>
+        </div>
+        <form id="consumer-form">
+          <div class="grid grid-3">
+            <div class="form-group">
+              <label class="form-label" for="consumer-topic">Topic</label>
+              <select class="form-select" id="consumer-topic" required>
+                <option value="">Select a topic</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="consumer-group">Group ID</label>
+              <input class="form-input" id="consumer-group" type="text" value="kafka-ui-group" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="from-beginning">From Beginning</label>
+              <select class="form-select" id="from-beginning">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+          </div>
+        </form>
+        <div class="log-container" id="consumer-log">
+          <div class="log-entry info">Consumer not started. Configure settings above and click "Start Consumer".</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Consumer Groups Tab -->
+    <div id="tab-groups" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Consumer Groups</h3>
+          <button class="btn btn-secondary btn-sm" onclick="loadConsumerGroups()">
+            <span class="loading hidden" id="groups-loading"></span>
+            🔄 Refresh
+          </button>
+        </div>
+        <div id="consumer-groups-list">Loading consumer groups...</div>
+      </div>
+    </div>
+
+    <!-- Health Tab -->
+    <div id="tab-health" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Cluster Health</h3>
+          <button class="btn btn-secondary btn-sm" onclick="loadClusterHealth()">
+            <span class="loading hidden" id="health-loading"></span>
+            🔄 Refresh
+          </button>
+        </div>
+        <div id="cluster-health-detail">Loading cluster health...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentTheme = localStorage.getItem('kafka-ui-theme') || 'light';
+    let eventSource = null;
+    let topics = [];
+    let consumerGroups = [];
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      setTheme(currentTheme);
+      initializeTabs();
+      loadInitialData();
+      setupForms();
+    });
+
+    function setTheme(theme) {
+      document.body.setAttribute('data-theme', theme);
+      document.getElementById('theme-icon').textContent = theme === 'light' ? '🌙' : '☀️';
+      localStorage.setItem('kafka-ui-theme', theme);
+      currentTheme = theme;
+    }
+
+    function toggleTheme() {
+      setTheme(currentTheme === 'light' ? 'dark' : 'light');
+    }
+
+    function initializeTabs() {
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const tabName = tab.dataset.tab;
+          switchTab(tabName);
+        });
+      });
+    }
+
+    function switchTab(tabName) {
+      // Update tab buttons
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+      // Update tab content
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+
+      // Load data for specific tabs
+      if (tabName === 'overview') refreshOverview();
+      if (tabName === 'topics') loadTopics();
+      if (tabName === 'groups') loadConsumerGroups();
+      if (tabName === 'health') loadClusterHealth();
+    }
+
+    async function loadInitialData() {
+      try {
+        const info = await fetch('/api/info').then(r => r.json());
+        document.getElementById('brokers').textContent = info.brokers.join(', ');
+
+        await loadTopics();
+        refreshOverview();
+      } catch (error) {
+        showToast('Error loading initial data: ' + error.message, 'error');
+      }
+    }
+
+    async function loadTopics() {
+      const loading = document.getElementById('topics-loading');
+      if (loading) loading.classList.remove('hidden');
+
+      try {
+        const response = await fetch('/api/topics');
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        topics = data.topics;
+        updateTopicsUI();
+        updateTopicSelects();
+      } catch (error) {
+        document.getElementById('topics-list').innerHTML =
+          `<div class="alert alert-error">Error loading topics: ${error.message}</div>`;
+      } finally {
+        if (loading) loading.classList.add('hidden');
+      }
+    }
+
+    function updateTopicsUI() {
+      const container = document.getElementById('topics-list');
+
+      if (topics.length === 0) {
+        container.innerHTML = '<div class="alert alert-error">No topics found</div>';
+        return;
+      }
+
+      const tableHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Topic</th>
+              <th>Partitions</th>
+              <th>Messages</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${topics.map(topic => `
+              <tr>
+                <td><strong>${topic.name}</strong></td>
+                <td>${topic.partitions}</td>
+                <td>${topic.totalMessages?.toLocaleString() || 0}</td>
+                <td>
+                  <button class="btn btn-secondary btn-sm" onclick="viewTopicDetails('${topic.name}')">
+                    👁️ View
+                  </button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteTopic('${topic.name}')">
+                    🗑️ Delete
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      container.innerHTML = tableHTML;
+    }
+
+    function updateTopicSelects() {
+      const selects = ['producer-topic', 'consumer-topic'];
+      selects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        const currentValue = select.value;
+
+        select.innerHTML = '<option value="">Select a topic</option>' +
+          topics.map(topic => `<option value="${topic.name}">${topic.name}</option>`).join('');
+
+        if (currentValue) select.value = currentValue;
+      });
+    }
+
+    async function refreshOverview() {
+      const loading = document.getElementById('overview-loading');
+      if (loading) loading.classList.remove('hidden');
+
+      try {
+        await loadTopics();
+        await loadConsumerGroups();
+
+        // Update metrics
+        const totalTopics = topics.length;
+        const totalPartitions = topics.reduce((sum, topic) => sum + topic.partitions, 0);
+        const totalMessages = topics.reduce((sum, topic) => sum + (topic.totalMessages || 0), 0);
+        const activeGroups = consumerGroups.filter(g => g.state === 'Stable').length;
+
+        document.getElementById('total-topics').textContent = totalTopics;
+        document.getElementById('total-partitions').textContent = totalPartitions;
+        document.getElementById('total-messages').textContent = totalMessages.toLocaleString();
+        document.getElementById('active-groups').textContent = activeGroups;
+
+        // Update recent topics
+        const recentTopicsHTML = topics.slice(0, 5).map(topic => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">
+            <div>
+              <strong>${topic.name}</strong>
+              <br>
+              <small style="color: var(--text-muted);">${topic.partitions} partitions, ${(topic.totalMessages || 0).toLocaleString()} messages</small>
+            </div>
+            <span class="badge badge-info">${topic.replicas} replicas</span>
+          </div>
+        `).join('');
+
+        document.getElementById('recent-topics').innerHTML = recentTopicsHTML || '<div style="color: var(--text-muted);">No topics available</div>';
+
+      } catch (error) {
+        showToast('Error refreshing overview: ' + error.message, 'error');
+      } finally {
+        if (loading) loading.classList.add('hidden');
+      }
+    }
+
+    async function loadConsumerGroups() {
+      const loading = document.getElementById('groups-loading');
+      if (loading) loading.classList.remove('hidden');
+
+      try {
+        const response = await fetch('/api/consumer-groups');
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        consumerGroups = data.groups;
+        updateConsumerGroupsUI();
+      } catch (error) {
+        document.getElementById('consumer-groups-list').innerHTML =
+          `<div class="alert alert-error">Error loading consumer groups: ${error.message}</div>`;
+      } finally {
+        if (loading) loading.classList.add('hidden');
+      }
+    }
+
+    function updateConsumerGroupsUI() {
+      const container = document.getElementById('consumer-groups-list');
+
+      if (consumerGroups.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted);">No consumer groups found</div>';
+        return;
+      }
+
+      const tableHTML = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Group ID</th>
+              <th>State</th>
+              <th>Members</th>
+              <th>Topics</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${consumerGroups.map(group => {
+              const uniqueTopics = [...new Set(group.offsets?.map(o => o.topic) || [])];
+              const stateClass = group.state === 'Stable' ? 'badge-success' :
+                               group.state === 'Dead' ? 'badge-error' : 'badge-warning';
+
+              return `
+                <tr>
+                  <td><strong>${group.groupId}</strong></td>
+                  <td><span class="badge ${stateClass}">${group.state || 'Unknown'}</span></td>
+                  <td>${group.members || 0}</td>
+                  <td>${uniqueTopics.join(', ') || 'None'}</td>
+                  <td>
+                    <button class="btn btn-secondary btn-sm" onclick="viewGroupDetails('${group.groupId}')">
+                      👁️ View Details
+                    </button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+
+      container.innerHTML = tableHTML;
+    }
+
+    async function loadClusterHealth() {
+      const loading = document.getElementById('health-loading');
+      if (loading) loading.classList.remove('hidden');
+
+      try {
+        const response = await fetch('/api/cluster/health');
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        updateClusterHealthUI(data);
+      } catch (error) {
+        document.getElementById('cluster-health-detail').innerHTML =
+          `<div class="alert alert-error">Error loading cluster health: ${error.message}</div>`;
+      } finally {
+        if (loading) loading.classList.add('hidden');
+      }
+    }
+
+    function updateClusterHealthUI(health) {
+      const container = document.getElementById('cluster-health-detail');
+
+      const healthyBrokers = health.brokers.filter(b => b.healthy).length;
+      const totalBrokers = health.brokers.length;
+      const healthPercentage = (healthyBrokers / totalBrokers) * 100;
+
+      const healthHTML = `
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-value">${healthyBrokers}/${totalBrokers}</div>
+            <div class="metric-label">Healthy Brokers</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">${health.clusterId}</div>
+            <div class="metric-label">Cluster ID</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">${health.controller?.nodeId || 'N/A'}</div>
+            <div class="metric-label">Controller</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span>Cluster Health</span>
+            <span>${healthPercentage.toFixed(1)}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${healthPercentage}%; background: ${healthPercentage === 100 ? 'var(--success)' : 'var(--warning)'}"></div>
+          </div>
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Broker ID</th>
+              <th>Host</th>
+              <th>Port</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${health.brokers.map(broker => `
+              <tr>
+                <td><strong>${broker.nodeId}</strong></td>
+                <td>${broker.host}</td>
+                <td>${broker.port}</td>
+                <td>
+                  <div class="health-indicator">
+                    <div class="health-dot ${broker.healthy ? 'health-healthy' : 'health-unhealthy'}"></div>
+                    ${broker.healthy ? 'Healthy' : 'Unhealthy'}
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+
+      container.innerHTML = healthHTML;
+
+      // Update header cluster health
+      const headerHealth = document.getElementById('cluster-health');
+      if (headerHealth) {
+        headerHealth.innerHTML = `
+          <div class="health-indicator">
+            <div class="health-dot ${healthPercentage === 100 ? 'health-healthy' : 'health-unhealthy'}"></div>
+            ${healthyBrokers}/${totalBrokers} brokers healthy
+          </div>
+        `;
+      }
+    }
+
+    function setupForms() {
+      // Create topic form
+      document.getElementById('create-topic-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const loading = document.getElementById('create-loading');
+        loading.classList.remove('hidden');
+
+        try {
+          const formData = new FormData(e.target);
+          const response = await fetch('/api/topics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              topic: document.getElementById('topic-name').value,
+              numPartitions: parseInt(document.getElementById('partitions').value),
+              replicationFactor: parseInt(document.getElementById('replication').value)
+            })
+          });
+
+          const data = await response.json();
+          if (data.error) throw new Error(data.error);
+
+          showToast('Topic created successfully!', 'success');
+          e.target.reset();
+          await loadTopics();
+        } catch (error) {
+          showToast('Error creating topic: ' + error.message, 'error');
+        } finally {
+          loading.classList.add('hidden');
+        }
+      });
+
+      // Producer form
+      document.getElementById('producer-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const loading = document.getElementById('producer-loading');
+        loading.classList.remove('hidden');
+
+        try {
+          const response = await fetch('/api/produce', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              topic: document.getElementById('producer-topic').value,
+              key: document.getElementById('message-key').value || null,
+              message: document.getElementById('message-value').value
+            })
+          });
+
+          const data = await response.json();
+          if (data.error) throw new Error(data.error);
+
+          showToast('Message sent successfully!', 'success');
+          document.getElementById('message-value').value = '';
+          document.getElementById('message-key').value = '';
+        } catch (error) {
+          showToast('Error sending message: ' + error.message, 'error');
+        } finally {
+          loading.classList.add('hidden');
+        }
+      });
+    }
+
+    function startConsumer() {
+      const topic = document.getElementById('consumer-topic').value;
+      const groupId = document.getElementById('consumer-group').value;
+      const fromBeginning = document.getElementById('from-beginning').value;
+
+      if (!topic || !groupId) {
+        showToast('Please select a topic and enter a group ID', 'error');
+        return;
+      }
+
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      const url = `/api/consume?topic=${encodeURIComponent(topic)}&groupId=${encodeURIComponent(groupId)}&fromBeginning=${fromBeginning}`;
+      eventSource = new EventSource(url);
+
+      const logContainer = document.getElementById('consumer-log');
+      logContainer.innerHTML = '';
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        addLogEntry(data);
+      };
+
+      eventSource.onerror = () => {
+        addLogEntry({ type: 'error', error: 'Connection lost to consumer stream' });
+      };
+
+      document.getElementById('start-consumer').classList.add('hidden');
+      document.getElementById('stop-consumer').classList.remove('hidden');
+
+      addLogEntry({ type: 'info', message: `Consumer started for topic: ${topic}, group: ${groupId}` });
+    }
+
+    function stopConsumer() {
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+
+      document.getElementById('start-consumer').classList.remove('hidden');
+      document.getElementById('stop-consumer').classList.add('hidden');
+
+      addLogEntry({ type: 'info', message: 'Consumer stopped' });
+    }
+
+    function addLogEntry(data) {
+      const logContainer = document.getElementById('consumer-log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${data.type || 'info'}`;
+
+      let content = '';
+      if (data.type === 'message') {
+        content = `
+          <div><strong>Topic:</strong> ${data.topic} | <strong>Partition:</strong> ${data.partition} | <strong>Offset:</strong> ${data.offset}</div>
+          ${data.key ? `<div><strong>Key:</strong> ${data.key}</div>` : ''}
+          <div><strong>Value:</strong> ${data.value}</div>
+          ${data.timestamp ? `<div><strong>Timestamp:</strong> ${new Date(parseInt(data.timestamp)).toLocaleString()}</div>` : ''}
+        `;
+      } else if (data.type === 'error') {
+        content = `<div style="color: var(--error);">Error: ${data.error}</div>`;
+      } else {
+        content = `<div>${data.message || JSON.stringify(data)}</div>`;
+      }
+
+      entry.innerHTML = content;
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    async function deleteTopic(topicName) {
+      if (!confirm(`Are you sure you want to delete topic "${topicName}"? This action cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/topics/${encodeURIComponent(topicName)}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+
+        showToast('Topic deleted successfully!', 'success');
+        await loadTopics();
+      } catch (error) {
+        showToast('Error deleting topic: ' + error.message, 'error');
+      }
+    }
+
+    async function viewTopicDetails(topicName) {
+      try {
+        const response = await fetch(`/api/topics/${encodeURIComponent(topicName)}/offsets`);
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        const details = `
+          Topic: ${data.topic}
+          Total Messages: ${data.totalMessages?.toLocaleString() || 0}
+          Partitions: ${data.offsets?.length || 0}
+
+          Partition Details:
+          ${data.offsets?.map(offset =>
+            `Partition ${offset.partition}: ${offset.low} - ${offset.high} (${parseInt(offset.high) - parseInt(offset.low)} messages)`
+          ).join('\n') || 'No partition data'}
+        `;
+
+        alert(details);
+      } catch (error) {
+        showToast('Error loading topic details: ' + error.message, 'error');
+      }
+    }
+
+    async function viewGroupDetails(groupId) {
+      try {
+        const response = await fetch(`/api/consumer-groups/${encodeURIComponent(groupId)}/offsets`);
+        const data = await response.json();
+
+        if (data.error) throw new Error(data.error);
+
+        const totalLag = data.offsets.reduce((sum, offset) => sum + (offset.lag || 0), 0);
+
+        const details = `
+          Group ID: ${data.groupId}
+          Total Lag: ${totalLag.toLocaleString()} messages
+
+          Offset Details:
+          ${data.offsets?.map(offset =>
+            `${offset.topic}:${offset.partition} - Offset: ${offset.offset}, Lag: ${offset.lag || 0}`
+          ).join('\n') || 'No offset data'}
+        `;
+
+        alert(details);
+      } catch (error) {
+        showToast('Error loading group details: ' + error.message, 'error');
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `toast alert-${type}`;
+      toast.textContent = message;
+
+      document.body.appendChild(toast);
+
+      setTimeout(() => toast.classList.add('show'), 100);
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => document.body.removeChild(toast), 300);
+      }, 3000);
+    }
+
+    // Auto-refresh data every 30 seconds
+    setInterval(() => {
+      const activeTab = document.querySelector('.tab.active')?.dataset.tab;
+      if (activeTab === 'overview') refreshOverview();
+      if (activeTab === 'groups') loadConsumerGroups();
+      if (activeTab === 'health') loadClusterHealth();
+    }, 30000);
+  </script>
+</body>
+</html>
